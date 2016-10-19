@@ -1891,7 +1891,7 @@ def scheduled_job_pump():
     pump.write(1)
     time.sleep(run_length)
     high.write(0)
-    low.write(0)
+    low.write(1)
     pump.write(0)
     pump_low_high = ""
 
