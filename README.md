@@ -7,7 +7,12 @@ Project created to automate sheduled runtimes for the pump and sweeper and repla
   3.  Scheduler that is configurable via the web-frontend.  
   4.  5-Day Weather Forecast for the zip-code set in the pool.py.  An API-Key will be needed from World Weather Online.
   5.  Buttons to manually operate the Pump (two-speed), Sweeper, and Blower for Jacuzzi.
-  
+
+      GPIO Pin 8 - Pump
+      GPIO Pin 9 - Low-Speed
+      GPIO Pin 10 - High Speed
+      GPIO Pin 11 - Sweeper
+      GPIO Pin 12 - Blower
 
 ## Hardware Used
 
