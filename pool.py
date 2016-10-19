@@ -116,6 +116,7 @@ sweeper_duration_5 = ""
 sweeper_duration_6 = ""
 ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
 api_key = "INSERT YOUR API KEY from WORLD WEATHER ONLINE HERE"
+zip_code = "INSERT YOUR ZIP CODE HERE"
 partly_cloudy = ['116', '119', '122']
 clear_day = ['113']
 fog = ['260', '248', '143']
@@ -1552,7 +1553,7 @@ def get_weather_loop():
     wait_for_internet_connection()
     while True:
         try:
-            url = "http://api.worldweatheronline.com/premium/v1/weather.ashx?key="+api_key+"&q=77546&format=json&num_of_days=5"
+            url = "http://api.worldweatheronline.com/premium/v1/weather.ashx?key="+api_key+"&q="+zip_code"&format=json&num_of_days=5"
             request = urllib2.urlopen(url)
             json_format = json.load(request)
             now = datetime.now()
