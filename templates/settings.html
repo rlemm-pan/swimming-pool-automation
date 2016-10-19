@@ -1,0 +1,368 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="keywords" content="Smart Ui Kit Responsive web template, Bootstrap Web Templates, Flat Web Templates, Android Compatible web template,
+        Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyEricsson, Motorola web design" />
+        <link href="static/css/bootstrap.css" rel="stylesheet" type="text/css" media="all" />
+        <link href="static/css/style.css" rel="stylesheet" type="text/css" media="all" />
+        <link href='https://fonts.googleapis.com/css?family=Bitter:400,400italic,700' rel='stylesheet' type='text/css'>
+        <!-- js -->
+        <script type="text/javascript" src="static/js/jquery-2.1.4.min.js"></script>
+        <!-- //js -->
+        <link rel="stylesheet" type="text/css" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/themes/dot-luv/jquery-ui.css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.0/jquery.min.js" type="text/javascript"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.12/jquery-ui.min.js" type="text/javascript"></script>
+        <script src="https://code.jquery.com/ui/1.8.17/jquery-ui.min.js"></script>
+        <script src="jquery.ui.touch-punch.min.js"></script>
+        <script src="static/js/jquery.ui.timeslider.js"> </script>
+      	<title>Pool Automation</title>
+
+    </head>
+<style>
+h1 {
+  font-family: "Avant Garde", Avantgarde, "Century Gothic", CenturyGothic, "AppleGothic", sans-serif;
+  font-size: 80%;
+  padding: 5px 3px;
+  text-align: center;
+  text-rendering: optimizeLegibility;
+}
+h1.elegantshadow {
+  color: #FFFFFF;
+  background-color: #212121;
+  letter-spacing: .01em;
+  text-shadow: 1px -1px 0 #767676, -1px 2px 1px #737272, -2px 4px 1px #767474, -3px 6px 1px #787777;
+}
+h1.deepshadow {
+  color: #e0dfdc;
+  background-color: #333;
+  letter-spacing: .1em;
+  text-shadow: 0 -1px 0 #fff, 0 1px 0 #2e2e2e, 0 2px 0 #2c2c2c, 0 3px 0 #2a2a2a, 0 4px 0 #282828, 0 5px 0 #262626, 0 6px 0 #242424, 0 7px 0 #222, 0 8px 0 #202020, 0 9px 0 #1e1e1e, 0 10px 0 #1c1c1c, 0 11px 0 #1a1a1a, 0 12px 0 #181818, 0 13px 0 #161616, 0 14px 0 #141414, 0 15px 0 #121212, 0 22px 30px rgba(0, 0, 0, 0.9);
+}
+h1.insetshadow {
+  color: #202020;
+  background-color: #2d2d2d;
+  letter-spacing: .1em;
+  text-shadow: -1px -1px 1px #111, 2px 2px 1px #363636;
+}
+h1.retroshadow {
+  color: #2c2c2c;
+  background-color: #d5d5d5;
+  letter-spacing: .05em;
+  text-shadow: 4px 4px 0px #d5d5d5, 7px 7px 0px rgba(0, 0, 0, 0.2);
+}
+section {
+	margin: 7px auto 0;
+	width: 75px;
+	height: 95px;
+	position: relative;
+	text-align: center;
+}
+:active, :focus {
+	outline: 0;
+}
+/** Font-Face **/
+@font-face {
+  font-family: "FontAwesome";
+  src: url("static/fonts/fontawesome-webfont.eot");
+  src: url("static/fonts/fontawesome-webfont.eot?#iefix") format('eot'),
+  	   url("static/fonts/fontawesome-webfont.woff") format('woff'),
+  	   url("static/fonts/fontawesome-webfont.ttf") format('truetype'),
+  	   url("static/fonts/fontawesome-webfont.svg#FontAwesome") format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+.button-box {
+    display: inline-block;
+    position: relative;
+    margin: 1%;
+    float: center;
+    width: 30%;
+    height: 0px;
+}
+.slider-box {
+    margin: auto;
+    width: 100%;
+    height: 60%;
+    border: 1px solid blue;
+}
+.menu-box {
+    margin: auto;
+    width: 100%;
+    height: 10%;
+    border: 0px solid blue;
+}
+body {margin:0;}
+ul.topnav {
+  list-style-type: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333;
+  height: 10%;
+}
+
+ul.topnav li {float: left;}
+
+ul.topnav li a {
+  display: inline-block;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 8px 8px;
+  text-decoration: none;
+  transition: 0.3s;
+  font-size: 20px;
+}
+
+ul.topnav li a:hover {background-color: #555;}
+
+ul.topnav li.icon {display: none;}
+
+@media screen and (max-width:680px) {
+  ul.topnav li:not(:first-child) {display: none;}
+  ul.topnav li.icon {
+    float: right;
+    display: inline-block;
+  }
+}
+
+@media screen and (max-width:680px) {
+  ul.topnav.responsive {position: relative;}
+  ul.topnav.responsive li.icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+  ul.topnav.responsive li {
+    float: none;
+    display: inline;
+  }
+  ul.topnav.responsive li a {
+    display: block;
+    text-align: left;
+  }
+}
+.icon-arrow-right:before{
+	content: '';
+    background:url(static/images/img-sp.png)no-repeat -117px -304px;
+    display: block;
+    width: 27px;
+    height: 25px;
+}
+.btn1 {
+	border: none;
+	font-family: inherit;
+	font-size: inherit;
+	color: inherit;
+	background: none;
+	cursor: pointer;
+	padding: 25px 80px;
+	display: inline-block;
+	margin:5px;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	outline: none;
+	position: relative;
+	-webkit-transition: all 0.3s;
+	-moz-transition: all 0.3s;
+	transition: all 0.3s;
+}
+.btn1:after {
+	content: '';
+	position: absolute;
+	z-index: -1;
+	-webkit-transition: all 0.3s;
+	-moz-transition: all 0.3s;
+	transition: all 0.3s;
+}
+.btn1:before {
+	font-family: 'icomoon';
+	speak: none;
+	font-style: normal;
+	font-weight: normal;
+	font-variant: normal;
+	text-transform: none;
+	line-height: 1;
+	position: relative;
+	-webkit-font-smoothing: antialiased;
+}
+.btn-7 {
+	background: #17aa56;
+	color: #fff;
+	border-radius: 7px;
+	box-shadow: 0 5px #119e4d;
+	padding: 25px 60px 25px 90px;
+}
+.btn-7c {
+	overflow: hidden;
+}
+
+.btn-7c:before {
+	color: #fff;
+	z-index: 1;
+}
+.btn-7c:after {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	z-index: 0;
+	width: 0;
+	background: #0a833d;
+	-webkit-transition: none;
+	-moz-transition: none;
+	transition: none;
+}
+.btn-7c.btn-activated:after {
+	-webkit-animation: fillToRight 0.7s forwards;
+	-moz-animation: fillToRight 0.7s forwards;
+	animation: fillToRight 0.7s forwards;
+	-o-animation: fillToRight 0.7s forwards;
+	-ms-animation: fillToRight 0.7s forwards;
+}
+@media (max-width: 1080px){
+  .btn-7 {
+		padding: 25px 36px 25px 70px;
+	}
+	.btn-icon-only {
+		padding: 25px 30px !important;
+	}
+}
+.btn-7c {
+	overflow: hidden;
+}
+.btn-7c:before {
+	color: #fff;
+	z-index: 1;
+}
+.btn-7c:after {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	z-index: 0;
+	width: 0;
+	background: #0a833d;
+	-webkit-transition: none;
+	-moz-transition: none;
+	transition: none;
+}
+.btn-7c.btn-activated:after {
+	-webkit-animation: fillToRight 0.7s forwards;
+	-moz-animation: fillToRight 0.7s forwards;
+	animation: fillToRight 0.7s forwards;
+	-o-animation: fillToRight 0.7s forwards;
+	-ms-animation: fillToRight 0.7s forwards;
+}
+.btn-icon-only {
+	font-size: 0;
+	padding: 25px 30px;
+}
+.btn-icon-only:before {
+	position: absolute;
+	top: 12px;
+    left: 17px;
+	width: 100%;
+	height: 100%;
+	font-size: 26px;
+	line-height: 54px;
+	-webkit-backface-visibility: hidden;
+	-moz-backface-visibility: hidden;
+	backface-visibility: hidden;
+	-o-backface-visibility: hidden;
+	-ms-backface-visibility: hidden;
+}
+input[type="radio"]{
+    width: 30px;
+    height: 30px;
+    border: 1px solid blue;
+}
+</style>
+    <body>
+    <div class="menu-box">
+        <ul class="topnav" id="myTopnav" style="position: fixed;">
+          <li><a href="/">Home</a></li>
+          <li class="icon">
+            <a href="/" style="font-size:20px;" onclick="myFunction()">&#9776;</a>
+          </li>
+        </ul>
+        <script>
+        function myFunction() {
+            var x = document.getElementById("myTopnav");
+            if (x.className === "topnav") {
+                x.className += " responsive";
+            } else {
+                x.className = "topnav";
+            }
+        }
+        </script>
+    </div>
+        <main>
+          <div>
+              <h1 class='elegantshadow'>
+              <form action="/make_changes" method="POST">
+                Pump Start Time<br>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="pump_hour" value="5" ><br>5AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="pump_hour" value="6" checked><br>6AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="pump_hour" value="7" ><br>7AM
+                </div><br>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="pump_hour" value="8" ><br>8AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="pump_hour" value="9" ><br>9AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="pump_hour" value="10" ><br>10AM
+                </div><br><br>
+                Sweeper Start Time<br>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_hour" value="5" ><br> 5AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_hour" value="6" checked><br> 6AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_hour" value="7" ><br> 7AM
+                </div><br>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_hour" value="8" ><br> 8AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_hour" value="9" ><br> 9AM
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_hour" value="10" ><br> 10AM
+                </div><br><br>
+                Sweeper Duration<br>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_duration" value="1" ><br> 1hr
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_duration" value="2" ><br> 2hrs
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_duration" value="3" ><br> 3hrs
+                </div><br>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_duration" value="4" checked><br> 4hrs
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_duration" value="5" ><br> 5hrs
+                </div>
+                <div class="button-box" style="margin: center;">
+                    <input type="radio" name="sweeper_duration" value="6" ><br> 6hrs
+                </div><br><br>
+                <input type="submit" value="Ok" href="/">
+              </form>
+	        </div>
+      </main>
+</body>
+</html>
