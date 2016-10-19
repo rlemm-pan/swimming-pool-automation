@@ -9,9 +9,13 @@ Project created to automate sheduled runtimes for the pump and sweeper and repla
   5.  Buttons to manually operate the Pump (two-speed), Sweeper, and Blower for Jacuzzi.
 
       GPIO Pin 8 - Pump
+      
       GPIO Pin 9 - Low-Speed
+      
       GPIO Pin 10 - High Speed
+      
       GPIO Pin 11 - Sweeper
+      
       GPIO Pin 12 - Blower
 
 ## Hardware Used
