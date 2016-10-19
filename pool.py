@@ -115,7 +115,7 @@ sweeper_duration_4 = ""
 sweeper_duration_5 = ""
 sweeper_duration_6 = ""
 ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
-api_key = "d78436b25cd940aab6b12249160610"
+api_key = "INSERT YOUR API KEY from WORLD WEATHER ONLINE HERE"
 partly_cloudy = ['116', '119', '122']
 clear_day = ['113']
 fog = ['260', '248', '143']
