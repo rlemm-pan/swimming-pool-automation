@@ -169,7 +169,7 @@ def scheduled_job_sweeper():
         elif pump_status == 0:
             sweeper_on_off = ""
             sweeper.write(0)
-            print "Pump is off.  Turning off Sweeper"
+            logging.warning('Pump is off.  Turning off Sweeper')
         time.sleep(run_length)
         sweeper_on_off = ""
         sweeper.write(0)
@@ -505,7 +505,7 @@ def read_monitor_starting_pressure():
                     if read_start_pressure is True:
                         maximum_psi = start_psi + 10
                         if psi_read > maximum_psi:
-                            print "Turning off Pump.  Max Pressure allowed exceeded"
+                            logging.warning('Turning off Pump.  Max Pressure allowed exceeded')
                             pump_low_high = ""
                             high.write(0)
                             low.write(0)
@@ -1490,7 +1490,7 @@ def sweeper_on():
         elif pump_status == 0:
             sweeper_on_off = ""
             sweeper.write(0)
-            print "Pump is off.  Turning off Sweeper"
+            logging.warning('Pump is off.  Turning off Sweeper')
         return redirect(url_for('index'))
 
     except Exception, e:
