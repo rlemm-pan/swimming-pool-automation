@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import logging
+from logging import getLogger
+from logging.handlers import RotatingFileHandler as RFHandler
 import requests
 import urllib2
 import urllib
@@ -24,28 +27,29 @@ import math
 import time
 import sys
 import os
-import logging
 import traceback
 import exceptions
-import logging.config
 from sunrise_sunset import SunriseSunset
+from warnings import warn
 
 monkey.patch_all()
 
-
-def setup_logging_to_file(filename):
+logfilesize = 1048576
+numberofbackups = 3
+def setup_logging_to_file(logfile):
     try:
-        logging.handlers.RotatingFileHandler(filename, maxBytes=1024, backupCount=2)
-        logging.basicConfig(filename=filename,
-                            filemode='ab',
-                            level=logging.DEBUG,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p')
+        logging.basicConfig(filename=logfile,
+                        filemode='a',
+                        level=logging.DEBUG,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S %p')
+        log = getLogger()
+        rotateHandler = RFHandler(logfile, "a", logfilesize, numberofbackups)
+        log.addHandler(rotateHandler)
 
     except Exception, e:
         log_exception(e)
         return str(e)
-
 
 def extract_function_name():
     try:
@@ -57,7 +61,6 @@ def extract_function_name():
     except Exception, e:
         log_exception(e)
         return str(e)
-
 
 def log_exception(e):
     try:
@@ -71,7 +74,6 @@ def log_exception(e):
     except Exception, e:
         log_exception(e)
         return str(e)
-
 
 t1 = Thread(target=setup_logging_to_file("pool.log"))
 t1.start()
@@ -174,22 +176,10 @@ sweeper_duration_3 = ""
 sweeper_duration_4 = ""
 sweeper_duration_5 = ""
 sweeper_duration_6 = ""
-api_key = "d78436b25cd940aab6b12249160610"
-zip_code = "77546"
-partly_cloudy = ['116', '119', '122']
-clear_day = ['113']
-fog = ['260', '248', '143']
-snow = ['395', '392', '377', '374', '371', '368',
-        '350', '338', '335', '332', '329', '326', '323', '230', '227', '179']
-sleet = ['365', '362', '320', '317', '284', '281', '185', '182']
-rain = ['389', '386', '359', '356', '353', '314', '311',
-        '308', '305', '302', '299', '296', '293', '266', '263', '200', '176']
-
 
 def ordinal(n):
     return "%d%s" % (n, "tsnrhtdd" [(n / 10 % 10 != 1) *
                                     (n % 10 < 4) * n % 10::4])
-
 
 @sched.scheduled_job('cron', hour=int(pump_hour), minute=0)
 def scheduled_job_pump():
