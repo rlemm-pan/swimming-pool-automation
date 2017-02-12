@@ -5,8 +5,7 @@ Project created to automate sheduled runtimes for the pump and sweeper and repla
   1.  Reads the Max temperature of the day to calculate the runtime schedule.
   2.  Reads the starting pressure 10 secs after the pump starts and continues to monitor the pressure until the pump is turned off.  If the pressure rises 10 lbs more than the starting pressure, the pump is turned off and a message is logged by python.
   3.  Scheduler that is configurable via the web-frontend.
-  
-4.  Weather Forecast for the latitude/longitude set in pool.py.  Pulling data from http://forecast.weather.gov/MapClick.php?lat="+lat+"&lon="+lon+"&FcstType=json
+  4.  Weather Forecast for the latitude/longitude set in pool.py.  Pulling data from http://forecast.weather.gov/MapClick.php?lat="+lat+"&lon="+lon+"&FcstType=json
   5.  Buttons to manually operate the Pump (two-speed), Sweeper, and Blower for Jacuzzi.
 
       GPIO Pin 8 - Pump
