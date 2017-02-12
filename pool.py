@@ -6,7 +6,7 @@ import urllib
 import json
 import pprint
 import cherrypy
-from datetime import datetime
+import datetime
 import pyfirmata
 from pyfirmata import Arduino, util
 import multiprocessing.pool
@@ -28,20 +28,69 @@ import logging
 import traceback
 import exceptions
 import logging.config
+from sunrise_sunset import SunriseSunset
+
 monkey.patch_all()
 
+
+def setup_logging_to_file(filename):
+    try:
+        logging.handlers.RotatingFileHandler(filename, maxBytes=1024, backupCount=2)
+        logging.basicConfig(filename=filename,
+                            filemode='ab',
+                            level=logging.DEBUG,
+                            format='%(asctime)s - %(levelname)s - %(message)s',
+                            datefmt='%m/%d/%Y %I:%M:%S %p')
+
+    except Exception, e:
+        log_exception(e)
+        return str(e)
+
+
+def extract_function_name():
+    try:
+        tb = sys.exc_info()[-1]
+        stk = traceback.extract_tb(tb, 1)
+        fname = stk[0][3]
+        return fname
+
+    except Exception, e:
+        log_exception(e)
+        return str(e)
+
+
+def log_exception(e):
+    try:
+        logging.error(
+            "Function {function_name} raised {exception_class} ({exception_docstring}): {exception_message}".format(
+                function_name=extract_function_name(),
+                exception_class=e.__class__,
+                exception_docstring=e.__doc__,
+                exception_message=e.message))
+
+    except Exception, e:
+        log_exception(e)
+        return str(e)
+
+
+t1 = Thread(target=setup_logging_to_file("pool.log"))
+t1.start()
+logging.info('Automation Initiated')
 board = Arduino('/dev/ttyACM0', baudrate=57600)
 sched = BlockingScheduler()
 pump = board.digital[8]
 pump.write(0)
+logging.info('Pump set to off after restart')
 low = board.digital[9]
 low.write(0)
 high = board.digital[10]
 high.write(0)
 sweeper = board.digital[11]
 sweeper.write(0)
+logging.info('Sweeper set to off after restart')
 blower = board.digital[12]
 blower.write(0)
+logging.info('Blower set to off after restart')
 
 app = Flask(__name__)
 
@@ -64,6 +113,7 @@ blower_status = blower.read()
 temperature = "0"
 wind_speed = "0"
 wind_direction = "S"
+current_day_name = ""
 current_graphic = "clear-day"
 day1_graphic = "clear-day"
 day2_graphic = "clear-day"
@@ -92,6 +142,8 @@ day2_day = "Mon"
 day3_day = "Mon"
 day4_day = "Mon"
 day5_day = "Mon"
+lat="29.5294"
+lon="-95.2010"
 pump_hour = ""
 sweeper_hour = ""
 sweeper_duration = ""
@@ -123,6 +175,7 @@ sweeper_duration_4 = ""
 sweeper_duration_5 = ""
 sweeper_duration_6 = ""
 api_key = "d78436b25cd940aab6b12249160610"
+zip_code = "77546"
 partly_cloudy = ['116', '119', '122']
 clear_day = ['113']
 fog = ['260', '248', '143']
@@ -142,13 +195,18 @@ def ordinal(n):
 def scheduled_job_pump():
     global day1_max_temp
     try:
+        logging.info('Starting Scheduled Pump time')
         run_length = 3600 * (int(day1_max_temp) / 10)
         low.write(0)
         high.write(1)
         pump.write(1)
+        logging.info('Pump turned on')
+        logging.info('Pump Set to High')
         time.sleep(run_length)
         high.write(0)
         pump.write(0)
+        low.write(1)
+        logging.info('Pump turned off')
         pump_low_high = ""
         pump_on_off = ""
 
@@ -161,11 +219,13 @@ def scheduled_job_pump():
 def scheduled_job_sweeper():
     global sweeper_duration
     try:
+        logging.info('Starting Scheduled Sweeper time')
         time.sleep(10)
         run_length = 3600 * int(sweeper_duration)
         if pump_status == 1:
             sweeper_on_off = "on"
             sweeper.write(1)
+            logging.info('Sweeper turned on')
         elif pump_status == 0:
             sweeper_on_off = ""
             sweeper.write(0)
@@ -181,6 +241,7 @@ def scheduled_job_sweeper():
 
 def start_pump_scheduler():
     try:
+        logging.info('Starting Pump Scheduler')
         sched.start()
 
     except Exception, e:
@@ -198,213 +259,142 @@ def get_weather_loop():
         day3_min_temp, day4_max_temp, day4_min_temp, \
         day5_max_temp, day5_min_temp, current_date, \
         day1_conditions, day2_conditions, day3_conditions, \
-        day4_conditions, day5_conditions
+        day4_conditions, day5_conditions, current_day_name
 
     wait_for_internet_connection()
     while True:
         try:
-            url = "http://api.worldweatheronline.com/premium/v1/weather.ashx?key="+api_key+"&q=77546&format=json&num_of_days=5"
-            json_format = requests.get(url.decode("utf-8")).json()
-            now = datetime.now()
-            temperature = str(json_format['data']['current_condition'][0]['temp_F'])
-            wind_speed = str(json_format['data']['current_condition'][0]['windspeedMiles'])
-            wind_direction = str(json_format['data']['current_condition'][0]['winddir16Point'])
-            current_graphic = str(json_format['data']['current_condition'][0]['weatherCode'])
+            logging.info('Gathering Weather info')
+            url = "http://forecast.weather.gov/MapClick.php?lat="+lat+"&lon="+lon+"&FcstType=json"
+            r = requests.get(url)
+            j = json.loads(r.text)
+            now = datetime.datetime.now()
+            temperature = j["currentobservation"]["Temp"]
+            wind_speed = j["currentobservation"]["Winds"]
+            wind_direction = float(j["currentobservation"]["Windd"])
             current_day = int(now.strftime("%d"))
+            current_day_name = now.strftime("%a")
             ordinal_day = ordinal(current_day)
-            current_date = str(now.strftime("%B "+ordinal_day+" %Y"))
-            current_conditions = str(json_format['data']['current_condition'][0]['weatherDesc'][0]['value'])
             current_time = now.strftime("%H:%M")
-            day1_graphic = str(json_format['data']['weather'][0]['hourly'][4]['weatherCode'])
-            day1_conditions = str(json_format['data']['weather'][0]['hourly'][4]['weatherDesc'][0]['value'])
-            day1_date = str(json_format['data']['weather'][0]['date'])
-            day1_max_temp = str(json_format['data']['weather'][0]['maxtempF'])
-            day1_min_temp = str(json_format['data']['weather'][0]['mintempF'])
-            day1_day = str(datetime.strptime(day1_date, '%Y-%m-%d').strftime('%a'))
-            day1_sunrise = str(json_format['data']['weather'][0]['astronomy'][0]['sunrise'])
-            day1_sunset = str(json_format['data']['weather'][0]['astronomy'][0]['sunset'])
-            day2_graphic = str(json_format['data']['weather'][1]['hourly'][4]['weatherCode'])
-            day2_conditions = str(json_format['data']['weather'][1]['hourly'][4]['weatherDesc'][0]['value'])
-            day2_date = str(json_format['data']['weather'][1]['date'])
-            day2_max_temp = str(json_format['data']['weather'][1]['maxtempF'])
-            day2_min_temp = str(json_format['data']['weather'][1]['mintempF'])
-            day2_day = str(datetime.strptime(day2_date, '%Y-%m-%d').strftime('%a'))
-            day3_graphic = str(json_format['data']['weather'][2]['hourly'][4]['weatherCode'])
-            day3_conditions = str(json_format['data']['weather'][2]['hourly'][4]['weatherDesc'][0]['value'])
-            day3_date = str(json_format['data']['weather'][2]['date'])
-            day3_max_temp = str(json_format['data']['weather'][2]['maxtempF'])
-            day3_min_temp = str(json_format['data']['weather'][2]['mintempF'])
-            day3_day = str(datetime.strptime(day3_date, '%Y-%m-%d').strftime('%a'))
-            day4_graphic = str(json_format['data']['weather'][3]['hourly'][4]['weatherCode'])
-            day4_conditions = str(json_format['data']['weather'][3]['hourly'][4]['weatherDesc'][0]['value'])
-            day4_date = str(json_format['data']['weather'][3]['date'])
-            day4_max_temp = str(json_format['data']['weather'][3]['maxtempF'])
-            day4_min_temp = str(json_format['data']['weather'][3]['mintempF'])
-            day4_day = str(datetime.strptime(day4_date, '%Y-%m-%d').strftime('%a'))
-            day5_graphic = str(json_format['data']['weather'][4]['hourly'][4]['weatherCode'])
-            day5_conditions = str(json_format['data']['weather'][4]['hourly'][4]['weatherDesc'][0]['value'])
-            day5_date = str(json_format['data']['weather'][4]['date'])
-            day5_max_temp = str(json_format['data']['weather'][4]['maxtempF'])
-            day5_min_temp = str(json_format['data']['weather'][4]['mintempF'])
-            day5_day = str(datetime.strptime(day5_date, '%Y-%m-%d').strftime('%a'))
-            # print current_graphic, day1_graphic, day2_graphic, day3_graphic, day4_graphic, day5_graphic
-            sunrise = datetime.strftime((datetime.strptime(day1_sunrise, "%I:%M %p")), "%H:%M")
-            sunset = datetime.strftime((datetime.strptime(day1_sunset, "%I:%M %p")), "%H:%M")
-            if current_graphic in partly_cloudy:
-                if current_time < sunset and current_time > sunrise:
-                    current_graphic = 'partly-cloudy-day'
-                elif current_time > sunset or current_time < sunrise:
-                    current_graphic = 'partly-cloudy-night'
-            elif current_graphic in clear_day:
-                if current_time < sunset and current_time > sunrise:
-                    current_graphic = 'clear-day'
-                elif current_time > sunset or current_time < sunrise:
-                    current_graphic = 'clear-night'
-            elif current_graphic == '122':
-                current_conditions = 'Overcast'
-                if current_time < sunset and current_time > sunrise:
-                    current_graphic = 'partly-cloudy-day'
-                elif current_time > sunset or current_time < sunrise:
-                    current_graphic = 'partly-cloudy-night'
-            elif current_graphic in fog:
-                current_graphic = 'fog'
-            elif current_graphic in snow:
-                current_graphic = 'snow'
-            elif current_graphic in sleet:
-                current_graphic = 'sleet'
-            elif current_graphic in rain:
-                current_conditions = 'Rainy'
-                current_graphic = 'rain'
-            else:
-                pass
-            if day1_graphic in partly_cloudy:
-                day1_graphic = 'partly-cloudy-day'
-            elif day1_graphic in clear_day:
-                day1_graphic = 'clear-day'
-            elif day1_graphic in fog:
-                day1_graphic = 'fog'
-            elif day1_graphic in snow:
-                day1_graphic = 'snow'
-            elif day1_graphic in sleet:
-                day1_graphic = 'sleet'
-            elif day1_graphic in rain:
-                day1_conditions = 'Rainy'
-                day1_graphic = 'rain'
-            else:
-                pass
-            if day2_graphic in partly_cloudy:
-                day2_graphic = 'partly-cloudy-day'
-            elif day2_graphic in clear_day:
-                day2_graphic = 'clear-day'
-            elif day2_graphic in fog:
-                day2_graphic = 'fog'
-            elif day2_graphic in snow:
-                day2_graphic = 'snow'
-            elif day2_graphic in sleet:
-                day2_graphic = 'sleet'
-            elif day2_graphic in rain:
-                day2_conditions = 'Rainy'
-                day2_graphic = 'rain'
-            else:
-                pass
-            if day3_graphic in partly_cloudy:
-                day3_graphic = 'partly-cloudy-day'
-            elif day3_graphic in clear_day:
-                day3_graphic = 'clear-day'
-            elif day3_graphic in fog:
-                day3_graphic = 'fog'
-            elif day3_graphic in snow:
-                day3_graphic = 'snow'
-            elif day3_graphic in sleet:
-                day3_graphic = 'sleet'
-            elif day3_graphic in rain:
-                day3_conditions = 'Rainy'
-                day3_graphic = 'rain'
-            else:
-                pass
-            if day4_graphic in partly_cloudy:
-                day4_graphic = 'partly-cloudy-day'
-            elif day4_graphic in clear_day:
-                day4_graphic = 'clear-day'
-            elif day4_graphic in fog:
-                day4_graphic = 'fog'
-            elif day4_graphic in snow:
-                day4_graphic = 'snow'
-            elif day4_graphic in sleet:
-                day4_graphic = 'sleet'
-            elif day4_graphic in rain:
-                day4_conditions = 'Rainy'
-                day4_graphic = 'rain'
-            else:
-                pass
-            if day5_graphic in partly_cloudy:
-                day5_graphic = 'partly-cloudy-day'
-            elif day5_graphic in clear_day:
-                day5_graphic = 'clear-day'
-            elif day5_graphic in fog:
-                day5_graphic = 'fog'
-            elif day5_graphic in snow:
-                day5_graphic = 'snow'
-            elif day5_graphic in sleet:
-                day5_graphic = 'sleet'
-            elif day5_graphic in rain:
-                day5_conditions = 'Rainy'
-                day5_graphic = 'rain'
-            else:
-                pass
-            # print current_graphic, day1_graphic, day2_graphic, day3_graphic, day4_graphic, day5_graphic
-            if wind_direction == 'N':
+            current_sunrise_day = datetime.datetime.now()
+            current_conditions = j["currentobservation"]["Weather"]
+            current_graphic = j["data"]["iconLink"][0]
+            current_date = str(now.strftime("%B "+ordinal_day+" %Y"))
+            ro = SunriseSunset(current_sunrise_day, latitude=float(lat), longitude=float(lon), localOffset=-6)
+            rise_time, set_time = ro.calculate()
+            current_sunrise = rise_time.strftime ('%H:%M:%S')
+            current_set = set_time.strftime ('%H:%M:%S')
+            day1_date = current_sunrise_day + datetime.timedelta(days=1)
+            ro1 = SunriseSunset(day1_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
+            rise_time1, set_time1 = ro1.calculate()
+            day1_day = j["time"]["startPeriodName"][1]
+            day1_graphic = j["data"]["iconLink"][1]
+            day1_conditions = j["data"]["weather"][1]
+            day1_max_temp = j["data"]["temperature"][1]
+            day1_min_temp = j["data"]["temperature"][2]
+            day1_sunrise = rise_time1.strftime ('%H:%M:%S')
+            day1_sunset = set_time1.strftime ('%H:%M:%S')
+            sunrise = day1_sunrise
+            sunset = day1_sunset
+
+            day2_date = current_sunrise_day + datetime.timedelta(days=2)
+            ro2 = SunriseSunset(day2_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
+            rise_time2, set_time2 = ro2.calculate()
+            day2_day = j["time"]["startPeriodName"][3]
+            day2_graphic = j["data"]["iconLink"][3]
+            day2_conditions = j["data"]["weather"][3]
+            day2_max_temp = j["data"]["temperature"][3]
+            day2_min_temp = j["data"]["temperature"][4]
+            day2_sunrise = rise_time2.strftime ('%H:%M:%S')
+            day2_sunset = set_time2.strftime ('%H:%M:%S')
+
+            day3_date = current_sunrise_day + datetime.timedelta(days=3)
+            ro3 = SunriseSunset(day3_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
+            rise_time3, set_time3 = ro3.calculate()
+            day3_day = j["time"]["startPeriodName"][5]
+            day3_graphic = j["data"]["iconLink"][5]
+            day3_conditions = j["data"]["weather"][5]
+            day3_max_temp = j["data"]["temperature"][5]
+            day3_min_temp = j["data"]["temperature"][6]
+            day3_sunrise = rise_time3.strftime ('%H:%M:%S')
+            day3_sunset = set_time3.strftime ('%H:%M:%S')
+
+            day4_date = current_sunrise_day + datetime.timedelta(days=4)
+            ro4 = SunriseSunset(day4_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
+            rise_time4, set_time4 = ro4.calculate()
+            day4_day = j["time"]["startPeriodName"][7]
+            day4_graphic = j["data"]["iconLink"][7]
+            day4_conditions = j["data"]["weather"][7]
+            day4_max_temp = j["data"]["temperature"][7]
+            day4_min_temp = j["data"]["temperature"][8]
+            day4_sunrise = rise_time4.strftime ('%H:%M:%S')
+            day4_sunset = set_time4.strftime ('%H:%M:%S')
+
+            day5_date = current_sunrise_day + datetime.timedelta(days=5)
+            ro5 = SunriseSunset(day5_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
+            rise_time5, set_time5 = ro5.calculate()
+            day5_day = j["time"]["startPeriodName"][9]
+            day5_graphic = j["data"]["iconLink"][9]
+            day5_conditions = j["data"]["weather"][9]
+            day5_max_temp = j["data"]["temperature"][9]
+            day5_min_temp = j["data"]["temperature"][10]
+            day5_sunrise = rise_time5.strftime ('%H:%M:%S')
+            day5_sunset = set_time5.strftime ('%H:%M:%S')
+
+            if wind_direction > 348.75 or wind_direction < 11.25:
                 wind_direction = 'North'
-            elif wind_direction == 'NNE':
+            elif wind_direction > 11.25 and wind_direction < 33.25:
                 wind_direction = 'North-Northeast'
-            elif wind_direction == 'NE':
+            elif wind_direction > 33.75 and wind_direction < 56.25:
                 wind_direction = 'Northeast'
-            elif wind_direction == 'ENE':
+            elif wind_direction  > 56.25 and wind_direction < 78.75:
                 wind_direction = 'East-Northeast'
-            elif wind_direction == 'E':
+            elif wind_direction > 78.75 and wind_direction < 101.25:
                 wind_direction = 'East'
-            elif wind_direction == 'ESE':
+            elif wind_direction > 101.25 and wind_direction < 123.75:
                 wind_direction = 'East-Southeast'
-            elif wind_direction == 'SE':
+            elif wind_direction > 123.75 and wind_direction < 146.25:
                 wind_direction = 'Southeast'
-            elif wind_direction == 'SSE':
+            elif wind_direction > 146.25 and wind_direction < 168.75:
                 wind_direction = 'South-Southeast'
-            elif wind_direction == 'S':
+            elif wind_direction > 168.75 and wind_direction < 191.25:
                 wind_direction = 'South'
-            elif wind_direction == 'SSW':
+            elif wind_direction > 191.25 and wind_direction < 213.75:
                 wind_direction = 'South-Southwest'
-            elif wind_direction == 'SW':
+            elif wind_direction > 213.75 and wind_direction < 236.25:
                 wind_direction = 'Southwest'
-            elif wind_direction == 'WSW':
+            elif wind_direction > 236.25 and wind_direction < 258.75:
                 wind_direction = 'West-Southwest'
-            elif wind_direction == 'W':
+            elif wind_direction > 258.75 and wind_direction < 281.25:
                 wind_direction = 'West'
-            elif wind_direction == 'WNW':
+            elif wind_direction > 281.25 and wind_direction < 303.75:
                 wind_direction = 'West-Northwest'
-            elif wind_direction == 'NW':
+            elif wind_direction > 303.75 and wind_direction < 326.25:
                 wind_direction = 'Northwest'
-            elif wind_direction == 'NNW':
+            elif wind_direction > 326.25 and wind_direction < 348.75:
                 wind_direction = 'North-Northwest'
-        except urllib2.HTTPError as err:
+
+        except urllib2.HTTPError as e:
             if err.code == 503:
                 print "Weather Onine Unavailable"
                 log_exception(e)
                 pass
-                continue
             elif err.code == 429:
                 log_exception(e)
                 pass
-                continue
             else:
                 raise
                 log_exception(e)
                 pass
-                continue
+        # except ConnectionError as e:
+        #     log_exception(e)
+        #     return str(e)
+        #     pass
         except Exception, e:
             log_exception(e)
             return str(e)
-            continue
-        time.sleep(200)
+            pass
+        time.sleep(300)
 
 
 def read_water_pressure():
@@ -510,6 +500,7 @@ def read_monitor_starting_pressure():
                             high.write(0)
                             low.write(0)
                             pump.write(0)
+                            logging.info('Pump turned off')
                         else:
                             pass
 
@@ -520,6 +511,7 @@ def read_monitor_starting_pressure():
 
 def run_web_server():
     try:
+        logging.info('Starting Web Server')
         cherrypy.tree.graft(app, "/")
         cherrypy.server.unsubscribe()
         server = cherrypy._cpserver.Server()
@@ -540,53 +532,16 @@ def run_web_server():
 
 def wait_for_internet_connection():
     try:
+        logging.info('Waiting for Internet Connection')
         while True:
             try:
                 response = urllib2.urlopen('http://www.google.com', timeout=1)
+                logging.info('Internet Connection Established')
                 return
-            except urllib2.URLError:
+            except urllib2.URLError as e:
                 log_exception(e)
+                logging.info('Internet Connection not Established')
                 pass
-
-    except Exception, e:
-        log_exception(e)
-        return str(e)
-
-
-def setup_logging_to_file(filename):
-    try:
-        logging.handlers.RotatingFileHandler(filename, maxBytes=1024, backupCount=2)
-        logging.basicConfig(filename=filename,
-                            filemode='ab',
-                            level=logging.DEBUG,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p')
-
-    except Exception, e:
-        log_exception(e)
-        return str(e)
-
-
-def extract_function_name():
-    try:
-        tb = sys.exc_info()[-1]
-        stk = traceback.extract_tb(tb, 1)
-        fname = stk[0][3]
-        return fname
-
-    except Exception, e:
-        log_exception(e)
-        return str(e)
-
-
-def log_exception(e):
-    try:
-        logging.error(
-            "Function {function_name} raised {exception_class} ({exception_docstring}): {exception_message}".format(
-                function_name=extract_function_name(),
-                exception_class=e.__class__,
-                exception_docstring=e.__doc__,
-                exception_message=e.message))
 
     except Exception, e:
         log_exception(e)
@@ -600,7 +555,7 @@ def index():
         current_conditions, current_graphic, day1_day, day1_graphic, day2_day, day2_graphic, day3_day, day3_graphic, day4_day, \
         day4_graphic, day5_day, day5_graphic, day1_max_temp, day1_min_temp, day2_max_temp, day2_min_temp, \
         day3_max_temp, day3_min_temp, day4_max_temp, day4_min_temp, day5_max_temp, day5_min_temp, current_date, \
-        day1_conditions, day2_conditions, day3_conditions, day4_conditions, day5_conditions
+        day1_conditions, day2_conditions, day3_conditions, day4_conditions, day5_conditions, current_day_name
     try:
         pump_status = pump.read()
         low_status = low.read()
@@ -1300,59 +1255,56 @@ def index():
                     <div class="content-top">
                         <div class="content-left">
                             <center>
+                                <h9 class='elegantshadow'>''' + current_day_name + '''</h9>
                                 <h9 class='elegantshadow'>''' + current_date + '''</h9>
-                                <h10 class='elegantshadow'>''' + temperature + '''&#8457</h10>
+                                <h10 class='elegantshadow'>''' + temperature + '''&#8457</h10><br>
+                                <h9 class='elegantshadow'>''' + wind_direction + '''</h9>
+                                <h9 class='elegantshadow'>''' + wind_speed + ''' Mph</h9>
                             </center>
                         </div>
                         <div class="content-right">
                             <h9 class='elegantshadow'>Currently</h9>
                                 <figure class="icons">
-                                    <canvas class="''' + current_graphic + '''" width="45" height="45">
-                                    </canvas>
+                                    <img src="''' + current_graphic + '''" style="width:45px;height:45px;">
                                 </figure>
                             <h9 class='elegantshadow'>''' + current_conditions + '''</h9>
                         </div>
                         <div class="content-last">
-                            <h9 class='elegantshadow'>''' + day1_day + '''</h9><br>
+                            <h9 class='elegantshadow'>''' + day1_day[0:3] + '''</h9><br>
                                 <figure class="icons">
-                                    <canvas class="''' + day1_graphic + '''" width="45" height="45">
-                                    </canvas>
+                                    <img src="''' + day1_graphic + '''" style="width:45px;height:45px;">
                                 </figure>
                             <h9 class='elegantshadow'>''' + day1_max_temp + '''/''' + day1_min_temp + '''</h9>
                             <h9 class='elegantshadow'>''' + day1_conditions + '''</h9><br>
                         </div>
                         <div class="content-last">
-                            <h9 class='elegantshadow'>''' + day2_day + '''</h9><br>
+                            <h9 class='elegantshadow'>''' + day2_day[0:3] + '''</h9><br>
                                 <figure class="icons">
-                                    <canvas class="''' + day2_graphic + '''" width="45" height="45">
-                                    </canvas>
+                                    <img src="''' + day2_graphic + '''" style="width:45px;height:45px;">
                                 </figure>
                             <h9 class='elegantshadow'>''' + day2_max_temp + '''/''' + day2_min_temp + '''</h9>
                             <h9 class='elegantshadow'>''' + day2_conditions + '''</h9><br>
                         </div>
                         <div class="content-last">
-                            <h9 class='elegantshadow'>''' + day3_day + '''</h9><br>
+                            <h9 class='elegantshadow'>''' + day3_day[0:3] + '''</h9><br>
                                 <figure class="icons">
-                                    <canvas class="''' + day3_graphic + '''" width="45" height="45">
-                                    </canvas>
+                                    <img src="''' + day3_graphic + '''" style="width:45px;height:45px;">
                                 </figure>
                             <h9 class='elegantshadow'>''' + day3_max_temp + '''/''' + day3_min_temp + '''</h9>
                             <h9 class='elegantshadow'>''' + day3_conditions + '''</h9><br>
                         </div>
                         <div class="content-last">
-                            <h9 class='elegantshadow'>''' + day4_day + '''</h9><br>
+                            <h9 class='elegantshadow'>''' + day4_day[0:3] + '''</h9><br>
                                 <figure class="icons">
-                                    <canvas class="''' + day4_graphic + '''" width="45" height="45">
-                                    </canvas>
+                                    <img src="''' + day4_graphic + '''" style="width:45px;height:45px;">
                                 </figure>
                             <h9 class='elegantshadow'>''' + day4_max_temp + '''/''' + day4_min_temp + '''</h9>
                             <h9 class='elegantshadow'>''' + day4_conditions + '''</h9><br>
                         </div>
                         <div class="content-last">
-                            <h9 class='elegantshadow'>''' + day5_day + '''</h9><br>
+                            <h9 class='elegantshadow'>''' + day5_day[0:3] + '''</h9><br>
                                 <figure class="icons">
-                                    <canvas class="''' + day5_graphic + '''" width="45" height="45">
-                                    </canvas>
+                                    <img src="''' + day5_graphic + '''" style="width:45px;height:45px;">
                                 </figure>
                             <h9 class='elegantshadow'>''' + day5_max_temp + '''/''' + day5_min_temp + '''</h9>
                             <h9 class='elegantshadow'>''' + day5_conditions + '''</h9><br>
@@ -1414,6 +1366,8 @@ def pump_on():
         high.write(0)
         low.write(1)
         pump.write(1)
+        logging.info('Pump turned on')
+        logging.info('Pump set to Low')
         return redirect(url_for('index'))
 
     except Exception, e:
@@ -1430,6 +1384,7 @@ def pump_off():
         high.write(0)
         low.write(0)
         pump.write(0)
+        logging.info('Pump turned off')
         sweeper_on_off = ""
         sweeper.write(0)
         return redirect(url_for('index'))
@@ -1487,6 +1442,7 @@ def sweeper_on():
         if pump_status == 1:
             sweeper_on_off = "on"
             sweeper.write(1)
+            logging.info('Sweeper turned on')
         elif pump_status == 0:
             sweeper_on_off = ""
             sweeper.write(0)
@@ -2029,7 +1985,6 @@ def make_changes():
         log_exception(e)
         return str(e)
 
-t1 = Thread(target=setup_logging_to_file("pool.log"))
 t2 = Thread(target=get_weather_loop)
 t3 = Thread(target=read_water_pressure)
 t4 = Thread(target=read_monitor_starting_pressure)
@@ -2037,7 +1992,6 @@ t5 = Thread(target=run_web_server)
 t6 = Thread(target=start_pump_scheduler)
 # t7 = Thread(target = current_variable_status)
 
-t1.start()
 t2.start()
 t3.start()
 t4.start()
