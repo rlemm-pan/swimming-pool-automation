@@ -50,6 +50,8 @@ SSR-40DA-H DC-AC 40A Solid State Relay 3-32VDC/90-480VAC + Heat Sink
   
   greenlet (0.4.10)
 
+  sunrise_sunset
+  
 ## Install
   
   Install Python Modules listed above with PIP
