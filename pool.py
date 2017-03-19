@@ -30,7 +30,6 @@ import os
 import traceback
 import exceptions
 from sunrise_sunset import SunriseSunset
-from warnings import warn
 
 monkey.patch_all()
 
@@ -112,6 +111,7 @@ low_status = low.read()
 high_status = high.read()
 sweeper_status = sweeper.read()
 blower_status = blower.read()
+nameoftown = ""
 temperature = "0"
 wind_speed = "0"
 wind_direction = "S"
@@ -144,8 +144,8 @@ day2_day = "Mon"
 day3_day = "Mon"
 day4_day = "Mon"
 day5_day = "Mon"
-lat="29.5294"
-lon="-95.2010"
+lat="29.482171"
+lon="-95.217180"
 pump_hour = ""
 sweeper_hour = ""
 sweeper_duration = ""
@@ -176,6 +176,7 @@ sweeper_duration_3 = ""
 sweeper_duration_4 = ""
 sweeper_duration_5 = ""
 sweeper_duration_6 = ""
+monitor_pressure = False
 
 def ordinal(n):
     return "%d%s" % (n, "tsnrhtdd" [(n / 10 % 10 != 1) *
@@ -191,7 +192,8 @@ def scheduled_job_pump():
         high.write(1)
         pump.write(1)
         logging.info('Pump turned on')
-        logging.info('Pump Set to High')
+        logging.info('Pump set to High')
+        logging.info('Pump set to run for ' + str(run_length) + ' Seconds')
         time.sleep(run_length)
         high.write(0)
         pump.write(0)
@@ -216,6 +218,7 @@ def scheduled_job_sweeper():
             sweeper_on_off = "on"
             sweeper.write(1)
             logging.info('Sweeper turned on')
+            logging.info('Sweeper set to run for '+sweeper_duration+' Hours')
         elif pump_status == 0:
             sweeper_on_off = ""
             sweeper.write(0)
@@ -240,7 +243,7 @@ def start_pump_scheduler():
 
 
 def get_weather_loop():
-    global temperature, wind_direction, wind_speed, api_key, \
+    global temperature, wind_direction, wind_speed, \
         current_conditions, current_graphic, day1_day, \
         day1_graphic, day2_day, day2_graphic, day3_day, \
         day3_graphic, day4_day, day4_graphic, day5_day, \
@@ -249,23 +252,24 @@ def get_weather_loop():
         day3_min_temp, day4_max_temp, day4_min_temp, \
         day5_max_temp, day5_min_temp, current_date, \
         day1_conditions, day2_conditions, day3_conditions, \
-        day4_conditions, day5_conditions, current_day_name
+        day4_conditions, day5_conditions, current_day_name, nameoftown
 
-    wait_for_internet_connection()
     while True:
         try:
+            wait_for_internet_connection()
             logging.info('Gathering Weather info')
             url = "http://forecast.weather.gov/MapClick.php?lat="+lat+"&lon="+lon+"&FcstType=json"
             r = requests.get(url)
             j = json.loads(r.text)
             now = datetime.datetime.now()
+            nameoftown = j["location"]["areaDescription"]
             temperature = j["currentobservation"]["Temp"]
             wind_speed = j["currentobservation"]["Winds"]
             wind_direction = float(j["currentobservation"]["Windd"])
             current_day = int(now.strftime("%d"))
             current_day_name = now.strftime("%a")
             ordinal_day = ordinal(current_day)
-            current_time = now.strftime("%H:%M")
+            current_time = now.strftime("%H:%M:%S")
             current_sunrise_day = datetime.datetime.now()
             current_conditions = j["currentobservation"]["Weather"]
             current_graphic = j["data"]["iconLink"][0]
@@ -273,63 +277,113 @@ def get_weather_loop():
             ro = SunriseSunset(current_sunrise_day, latitude=float(lat), longitude=float(lon), localOffset=-6)
             rise_time, set_time = ro.calculate()
             current_sunrise = rise_time.strftime ('%H:%M:%S')
-            current_set = set_time.strftime ('%H:%M:%S')
+            current_sunset = set_time.strftime ('%H:%M:%S')
             day1_date = current_sunrise_day + datetime.timedelta(days=1)
             ro1 = SunriseSunset(day1_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
             rise_time1, set_time1 = ro1.calculate()
-            day1_day = j["time"]["startPeriodName"][1]
-            day1_graphic = j["data"]["iconLink"][1]
-            day1_conditions = j["data"]["weather"][1]
-            day1_max_temp = j["data"]["temperature"][1]
-            day1_min_temp = j["data"]["temperature"][2]
-            day1_sunrise = rise_time1.strftime ('%H:%M:%S')
-            day1_sunset = set_time1.strftime ('%H:%M:%S')
-            sunrise = day1_sunrise
-            sunset = day1_sunset
-
             day2_date = current_sunrise_day + datetime.timedelta(days=2)
             ro2 = SunriseSunset(day2_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
             rise_time2, set_time2 = ro2.calculate()
-            day2_day = j["time"]["startPeriodName"][3]
-            day2_graphic = j["data"]["iconLink"][3]
-            day2_conditions = j["data"]["weather"][3]
-            day2_max_temp = j["data"]["temperature"][3]
-            day2_min_temp = j["data"]["temperature"][4]
-            day2_sunrise = rise_time2.strftime ('%H:%M:%S')
-            day2_sunset = set_time2.strftime ('%H:%M:%S')
-
             day3_date = current_sunrise_day + datetime.timedelta(days=3)
             ro3 = SunriseSunset(day3_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
             rise_time3, set_time3 = ro3.calculate()
-            day3_day = j["time"]["startPeriodName"][5]
-            day3_graphic = j["data"]["iconLink"][5]
-            day3_conditions = j["data"]["weather"][5]
-            day3_max_temp = j["data"]["temperature"][5]
-            day3_min_temp = j["data"]["temperature"][6]
-            day3_sunrise = rise_time3.strftime ('%H:%M:%S')
-            day3_sunset = set_time3.strftime ('%H:%M:%S')
-
             day4_date = current_sunrise_day + datetime.timedelta(days=4)
             ro4 = SunriseSunset(day4_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
             rise_time4, set_time4 = ro4.calculate()
-            day4_day = j["time"]["startPeriodName"][7]
-            day4_graphic = j["data"]["iconLink"][7]
-            day4_conditions = j["data"]["weather"][7]
-            day4_max_temp = j["data"]["temperature"][7]
-            day4_min_temp = j["data"]["temperature"][8]
-            day4_sunrise = rise_time4.strftime ('%H:%M:%S')
-            day4_sunset = set_time4.strftime ('%H:%M:%S')
-
             day5_date = current_sunrise_day + datetime.timedelta(days=5)
             ro5 = SunriseSunset(day5_date, latitude=float(lat), longitude=float(lon), localOffset=-6)
             rise_time5, set_time5 = ro5.calculate()
-            day5_day = j["time"]["startPeriodName"][9]
-            day5_graphic = j["data"]["iconLink"][9]
-            day5_conditions = j["data"]["weather"][9]
-            day5_max_temp = j["data"]["temperature"][9]
-            day5_min_temp = j["data"]["temperature"][10]
+            day1_sunrise = rise_time1.strftime ('%H:%M:%S')
+            day1_sunset = set_time1.strftime ('%H:%M:%S')
+            day2_sunrise = rise_time2.strftime ('%H:%M:%S')
+            day2_sunset = set_time2.strftime ('%H:%M:%S')
+            day3_sunrise = rise_time3.strftime ('%H:%M:%S')
+            day3_sunset = set_time3.strftime ('%H:%M:%S')
+            day4_sunrise = rise_time4.strftime ('%H:%M:%S')
+            day4_sunset = set_time4.strftime ('%H:%M:%S')
             day5_sunrise = rise_time5.strftime ('%H:%M:%S')
             day5_sunset = set_time5.strftime ('%H:%M:%S')
+
+            if j["time"]["startPeriodName"][0] == "Overnight" or j["time"]["startPeriodName"][0] == "Tonight":
+                day1_day = j["time"]["startPeriodName"][1]
+                day1_graphic = j["data"]["iconLink"][1]
+                day1_conditions = j["data"]["weather"][1]
+                day1_max_temp = j["data"]["temperature"][1]
+                day1_min_temp = j["data"]["temperature"][2]
+                day2_day = j["time"]["startPeriodName"][3]
+                day2_graphic = j["data"]["iconLink"][3]
+                day2_conditions = j["data"]["weather"][3]
+                day2_max_temp = j["data"]["temperature"][3]
+                day2_min_temp = j["data"]["temperature"][4]
+                day3_day = j["time"]["startPeriodName"][5]
+                day3_graphic = j["data"]["iconLink"][5]
+                day3_conditions = j["data"]["weather"][5]
+                day3_max_temp = j["data"]["temperature"][5]
+                day3_min_temp = j["data"]["temperature"][6]
+                day4_day = j["time"]["startPeriodName"][7]
+                day4_graphic = j["data"]["iconLink"][7]
+                day4_conditions = j["data"]["weather"][7]
+                day4_max_temp = j["data"]["temperature"][7]
+                day4_min_temp = j["data"]["temperature"][8]
+                day5_day = j["time"]["startPeriodName"][9]
+                day5_graphic = j["data"]["iconLink"][9]
+                day5_conditions = j["data"]["weather"][9]
+                day5_max_temp = j["data"]["temperature"][9]
+                day5_min_temp = j["data"]["temperature"][10]
+
+            elif j["time"]["startPeriodName"][0] == "Today" or j["time"]["startPeriodName"][0] == "This Afternoon":
+                day1_day = j["time"]["startPeriodName"][2]
+                day1_graphic = j["data"]["iconLink"][2]
+                day1_conditions = j["data"]["weather"][2]
+                day1_max_temp = j["data"]["temperature"][2]
+                day1_min_temp = j["data"]["temperature"][3]
+                day2_day = j["time"]["startPeriodName"][4]
+                day2_graphic = j["data"]["iconLink"][4]
+                day2_conditions = j["data"]["weather"][4]
+                day2_max_temp = j["data"]["temperature"][4]
+                day2_min_temp = j["data"]["temperature"][5]
+                day3_day = j["time"]["startPeriodName"][6]
+                day3_graphic = j["data"]["iconLink"][6]
+                day3_conditions = j["data"]["weather"][6]
+                day3_max_temp = j["data"]["temperature"][6]
+                day3_min_temp = j["data"]["temperature"][7]
+                day4_day = j["time"]["startPeriodName"][8]
+                day4_graphic = j["data"]["iconLink"][8]
+                day4_conditions = j["data"]["weather"][8]
+                day4_max_temp = j["data"]["temperature"][8]
+                day4_min_temp = j["data"]["temperature"][9]
+                day5_day = j["time"]["startPeriodName"][10]
+                day5_graphic = j["data"]["iconLink"][10]
+                day5_conditions = j["data"]["weather"][10]
+                day5_max_temp = j["data"]["temperature"][10]
+                day5_min_temp = j["data"]["temperature"][11]
+
+            else:
+                day1_day = j["time"]["startPeriodName"][2]
+                day1_graphic = j["data"]["iconLink"][2]
+                day1_conditions = j["data"]["weather"][2]
+                day1_max_temp = j["data"]["temperature"][2]
+                day1_min_temp = j["data"]["temperature"][3]
+                day2_day = j["time"]["startPeriodName"][4]
+                day2_graphic = j["data"]["iconLink"][4]
+                day2_conditions = j["data"]["weather"][4]
+                day2_max_temp = j["data"]["temperature"][4]
+                day2_min_temp = j["data"]["temperature"][5]
+                day3_day = j["time"]["startPeriodName"][6]
+                day3_graphic = j["data"]["iconLink"][6]
+                day3_conditions = j["data"]["weather"][6]
+                day3_max_temp = j["data"]["temperature"][6]
+                day3_min_temp = j["data"]["temperature"][7]
+                day4_day = j["time"]["startPeriodName"][8]
+                day4_graphic = j["data"]["iconLink"][8]
+                day4_conditions = j["data"]["weather"][8]
+                day4_max_temp = j["data"]["temperature"][8]
+                day4_min_temp = j["data"]["temperature"][9]
+                day5_day = j["time"]["startPeriodName"][10]
+                day5_graphic = j["data"]["iconLink"][10]
+                day5_conditions = j["data"]["weather"][10]
+                day5_max_temp = j["data"]["temperature"][10]
+                day5_min_temp = j["data"]["temperature"][11]
 
             if wind_direction > 348.75 or wind_direction < 11.25:
                 wind_direction = 'North'
@@ -364,27 +418,14 @@ def get_weather_loop():
             elif wind_direction > 326.25 and wind_direction < 348.75:
                 wind_direction = 'North-Northwest'
 
-        except urllib2.HTTPError as e:
-            if err.code == 503:
-                print "Weather Onine Unavailable"
-                log_exception(e)
-                pass
-            elif err.code == 429:
-                log_exception(e)
-                pass
-            else:
-                raise
-                log_exception(e)
-                pass
-        # except ConnectionError as e:
-        #     log_exception(e)
-        #     return str(e)
-        #     pass
+        except ConnectionError as e:
+            log_exception(e)
+            return str(e)
         except Exception, e:
             log_exception(e)
             return str(e)
-            pass
-        time.sleep(300)
+        # logging.info("The Value = " + j["time"]["startPeriodName"][0])
+        time.sleep(1800)
 
 
 def read_water_pressure():
@@ -418,44 +459,43 @@ def read_water_pressure():
 
 
 def current_variable_status():
-    global psi, start_psi, psi_read, web_start_psi, pump_status, low_status, high_status, maximum_psi, wp_sensor_value, temperature, wind_direction, wind_speed, api_key, \
+    global psi, start_psi, psi_read, web_start_psi, pump_status, low_status, high_status, maximum_psi, wp_sensor_value, temperature, wind_direction, wind_speed, \
         current_conditions, current_graphic, day1_day, day1_graphic, day2_day, day2_graphic, day3_day, day3_graphic, day4_day, \
         day4_graphic, day5_day, day5_graphic, day1_max_temp, day1_min_temp, day2_max_temp, day2_min_temp, \
         day3_max_temp, day3_min_temp, day4_max_temp, day4_min_temp, day5_max_temp, day5_min_temp, current_date, \
         day1_conditions, day2_conditions, day3_conditions, day4_conditions, day5_conditions, pump_hour, sweeper_hour, sweeper_duration
     try:
         while 1:
-            # print "Variable psi: ", psi
-            # print "Variable psi_read: ", psi_read
-            # print "Variable start_psi: ", start_psi
-            # print "Variable maximum_psi: ", maximum_psi
-            # print "Variable web_start_psi: ", web_start_psi
+            print "Variable psi: ", psi
+            print "Variable psi_read: ", psi_read
+            print "Variable start_psi: ", start_psi
+            print "Variable maximum_psi: ", maximum_psi
+            print "Variable web_start_psi: ", web_start_psi
             print "Variable pump_status: ", pump_status
             print "Variable low_status: ", low_status
             print "Variable high_status: ", high_status
             print "Variable sweeper_status: ", sweeper_status
             print "Variable blower_status: ", blower_status
-            # print "Variable water_pressure_value: ", wp_sensor_value
-            # print "Temperature: ", temperature
-            # print "Wind Speed: ", wind_speed
-            # print "Wind Direction: ", wind_direction
-            # print "Current Graphic: ", current_graphic
-            # print "Day 1 Graphic: ", day1_graphic
-            # print "Day 2 Graphic: ", day2_graphic
-            # print "Day 3 Graphic: ", day3_graphic
-            # print "Day 4 Graphic: ", day4_graphic
-            # print "Day 5 Graphic: ", day5_graphic
-            # print "Current Date: ", current_date
-            # print "Current Conditions: ", current_conditions
-            # print "Day 1 Conditions: ", day1_conditions
-            # print "Day 2 Conditions: ", day2_conditions
-            # print "Day 3 Conditions: ", day3_conditions
-            # print "Day 4 Conditions: ", day4_conditions
-            # print "Day 5 Conditions: ", day5_conditions
-            # print "API Key: ", api_key
-            # print "Pump Hour: ", pump_hour
-            # print "Sweeper Hour: ", sweeper_hour
-            # print "Sweeper Duration: ", sweeper_duration
+            print "Variable water_pressure_value: ", wp_sensor_value
+            print "Temperature: ", temperature
+            print "Wind Speed: ", wind_speed
+            print "Wind Direction: ", wind_direction
+            print "Current Graphic: ", current_graphic
+            print "Day 1 Graphic: ", day1_graphic
+            print "Day 2 Graphic: ", day2_graphic
+            print "Day 3 Graphic: ", day3_graphic
+            print "Day 4 Graphic: ", day4_graphic
+            print "Day 5 Graphic: ", day5_graphic
+            print "Current Date: ", current_date
+            print "Current Conditions: ", current_conditions
+            print "Day 1 Conditions: ", day1_conditions
+            print "Day 2 Conditions: ", day2_conditions
+            print "Day 3 Conditions: ", day3_conditions
+            print "Day 4 Conditions: ", day4_conditions
+            print "Day 5 Conditions: ", day5_conditions
+            print "Pump Hour: ", pump_hour
+            print "Sweeper Hour: ", sweeper_hour
+            print "Sweeper Duration: ", sweeper_duration
             time.sleep(1)
 
     except Exception, e:
@@ -464,39 +504,39 @@ def current_variable_status():
 
 
 def read_monitor_starting_pressure():
-    global pump_on_off, pump_low_high, sweeper_on_off, blower_on_off, psi, start_psi, psi_read, web_start_psi, pump_status, low_status, high_status, maximum_psi, read_start_pressure
-    try:
-        while 1:
-            if pump_status == 1:
-                if high_status == 1:
-                    read_start_pressure = True
-                    start_psi = psi_read
-                    web_start_psi = str(start_psi)
-                else:
-                    pass
-            elif pump_status == 0:
-                read_start_pressure = False
-                start_psi = 0
-                web_start_psi = "0"
-                pass
-            time.sleep(10)
-            if pump_status == 1:
-                if high_status == 1:
-                    if read_start_pressure is True:
-                        maximum_psi = start_psi + 10
-                        if psi_read > maximum_psi:
-                            logging.warning('Turning off Pump.  Max Pressure allowed exceeded')
-                            pump_low_high = ""
-                            high.write(0)
-                            low.write(0)
-                            pump.write(0)
-                            logging.info('Pump turned off')
-                        else:
-                            pass
+    global pump_on_off, pump_low_high, sweeper_on_off, blower_on_off, psi, start_psi, \
+    psi_read, web_start_psi, pump_status, low_status, high_status, maximum_psi, read_start_pressure, monitor_pressure
+    while 1:
+        try:
+            time.sleep(1)
+            if monitor_pressure is True:
+                if pump_status == 1:
+                    if high_status == 1:
+                        time.sleep(10)
+                        read_start_pressure = True
+                        start_psi = psi_read
+                        web_start_psi = str(start_psi)
+                        logging.info('Reading Starting Pressure ' + web_start_psi)
+                        monitor_pressure = False
+                    else:
+                        pass
+                if pump_status == 1:
+                    if high_status == 1:
+                        if read_start_pressure is True:
+                            maximum_psi = start_psi + 10
+                            if psi_read > maximum_psi:
+                                logging.warning('Turning off Pump.  Max Pressure allowed exceeded')
+                                pump_low_high = ""
+                                high.write(0)
+                                low.write(0)
+                                pump.write(0)
+                                logging.info('Pump turned off')
+                            else:
+                                pass
 
-    except Exception, e:
-        log_exception(e)
-        return str(e)
+        except Exception, e:
+            log_exception(e)
+            return str(e)
 
 
 def run_web_server():
@@ -531,7 +571,6 @@ def wait_for_internet_connection():
             except urllib2.URLError as e:
                 log_exception(e)
                 logging.info('Internet Connection not Established')
-                pass
 
     except Exception, e:
         log_exception(e)
@@ -545,7 +584,7 @@ def index():
         current_conditions, current_graphic, day1_day, day1_graphic, day2_day, day2_graphic, day3_day, day3_graphic, day4_day, \
         day4_graphic, day5_day, day5_graphic, day1_max_temp, day1_min_temp, day2_max_temp, day2_min_temp, \
         day3_max_temp, day3_min_temp, day4_max_temp, day4_min_temp, day5_max_temp, day5_min_temp, current_date, \
-        day1_conditions, day2_conditions, day3_conditions, day4_conditions, day5_conditions, current_day_name
+        day1_conditions, day2_conditions, day3_conditions, day4_conditions, day5_conditions, current_day_name, nameoftown
     try:
         pump_status = pump.read()
         low_status = low.read()
@@ -744,7 +783,7 @@ def index():
                     inset 0px -10px 35px 5px rgba(0, 0, 0, .5);
         background-color: rgb(83,87,93);
           top: 3px;
-         color: #dbe6ff;
+         color: #ffe800;
           text-shadow: 0px 0px 3px rgb(250,250,250);
     }
     z:active:before, z.on:before {
@@ -831,7 +870,7 @@ def index():
                     inset 0px -10px 35px 5px rgba(0, 0, 0, .5);
         background-color: rgb(83,87,93);
           top: 3px;
-         color: #dbe6ff;
+         color: #ffe800;
           text-shadow: 0px 0px 3px rgb(250,250,250);
     }
     b:active:before, b.on:before {
@@ -918,7 +957,7 @@ def index():
                     inset 0px -10px 35px 5px rgba(0, 0, 0, .5);
         background-color: rgb(83,87,93);
           top: 3px;
-         color: #dbe6ff;
+         color: #ffe800;
           text-shadow: 0px 0px 3px rgb(250,250,250);
     }
     c:active:before, c.on:before {
@@ -1005,7 +1044,7 @@ def index():
                     inset 0px -10px 35px 5px rgba(0, 0, 0, .5);
         background-color: rgb(83,87,93);
           top: 3px;
-         color: #dbe6ff;
+         color: #ffe800;
           text-shadow: 0px 0px 3px rgb(250,250,250);
     }
     d:active:before, d.on:before {
@@ -1120,7 +1159,7 @@ def index():
     }
     body {
         margin:0;
-        background-color: #dbe6ff;
+        background-color: #ffe800;
         font-weight: bold
     }
     ul.topnav {
@@ -1245,7 +1284,8 @@ def index():
                     <div class="content-top">
                         <div class="content-left">
                             <center>
-                                <h9 class='elegantshadow'>''' + current_day_name + '''</h9>
+                                <h9 class='elegantshadow'>''' + current_day_name + '''</h9><br>
+                                <h9 class='elegantshadow'>''' + nameoftown + '''</h9><br>
                                 <h9 class='elegantshadow'>''' + current_date + '''</h9>
                                 <h10 class='elegantshadow'>''' + temperature + '''&#8457</h10><br>
                                 <h9 class='elegantshadow'>''' + wind_direction + '''</h9>
@@ -1367,7 +1407,7 @@ def pump_on():
 
 @app.route('/pump_off', methods=['POST'])
 def pump_off():
-    global pump_on_off, pump_low_high, sweeper_on_off, blower_on_off
+    global pump_on_off, pump_low_high, sweeper_on_off, blower_on_off, start_psi, web_start_psi
     try:
         pump_low_high = ""
         pump_on_off = ""
@@ -1377,6 +1417,8 @@ def pump_off():
         logging.info('Pump turned off')
         sweeper_on_off = ""
         sweeper.write(0)
+        start_psi = 0
+        web_start_psi = "0"
         return redirect(url_for('index'))
 
     except Exception, e:
@@ -1393,6 +1435,7 @@ def pump_low():
             pump_low_high = ""
             high.write(0)
             low.write(1)
+            logging.info('Pump set to Low')
         elif pump_status == 0:
             pump_low_high = ""
             high.write(0)
@@ -1406,17 +1449,20 @@ def pump_low():
 
 @app.route('/pump_high', methods=['POST'])
 def pump_high():
-    global pump_on_off, pump_low_high, sweeper_on_off, blower_on_off
+    global pump_on_off, pump_low_high, sweeper_on_off, blower_on_off, monitor_pressure
     try:
         pump_status = pump.read()
         if pump_status == 1:
             pump_low_high = "on"
             low.write(0)
             high.write(1)
+            monitor_pressure = True
+            logging.info('Pump set to High')
         elif pump_status == 0:
             pump_low_high = ""
             low.write(0)
             high.write(0)
+            monitor_pressure = False
         return redirect(url_for('index'))
 
     except Exception, e:
@@ -1450,6 +1496,7 @@ def sweeper_off():
     try:
         sweeper_on_off = ""
         sweeper.write(0)
+        logging.info('Sweeper turned off')
         return redirect(url_for('index'))
 
     except Exception, e:
@@ -1579,7 +1626,7 @@ def settings():
 <style>
 body {
     margin:0;
-    background-color: #dbe6ff;
+    background-color: #ffe800;
     font-weight: bold;
 }
 h1 {
@@ -1732,7 +1779,7 @@ ul.topnav li.icon {display: none;}
 }
 .btn-7 {
     background: #17aa56;
-    color: #dbe6ff;
+    color: #ffe800;
     border-radius: 7px;
     box-shadow: 0 5px #119e4d;
     padding: 25px 60px 25px 90px;
@@ -1742,7 +1789,7 @@ ul.topnav li.icon {display: none;}
 }
 
 .btn-7c:before {
-    color: #dbe6ff;
+    color: #ffe800;
     z-index: 1;
 }
 .btn-7c:after {
@@ -1776,7 +1823,7 @@ ul.topnav li.icon {display: none;}
     overflow: hidden;
 }
 .btn-7c:before {
-    color: #dbe6ff;
+    color: #ffe800;
     z-index: 1;
 }
 .btn-7c:after {
@@ -1980,7 +2027,7 @@ t3 = Thread(target=read_water_pressure)
 t4 = Thread(target=read_monitor_starting_pressure)
 t5 = Thread(target=run_web_server)
 t6 = Thread(target=start_pump_scheduler)
-# t7 = Thread(target = current_variable_status)
+t7 = Thread(target = current_variable_status)
 
 t2.start()
 t3.start()
